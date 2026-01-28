@@ -800,18 +800,17 @@
         body { background-color: #0f172a; color: #e2e8f0; }
         .player-wrapper { position: relative; padding-top: 56.25%; background: #000; }
         video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        /* 隐藏滚动条但允许滚动 */
+        ::-webkit-scrollbar { width: 0px; }
     </style>
 </head>
-<body class="p-4 md:p-8 max-w-4xl mx-auto min-h-screen flex flex-col">
+<body class="p-4 md:p-8 max-w-4xl mx-auto min-h-screen flex flex-col justify-center">
 
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold text-blue-400 tracking-wider">LIVE STREAM</h1>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-blue-500 tracking-widest mx-auto">LIVE STREAM</h1>
     </div>
 
-    <div class="rounded-xl overflow-hidden shadow-2xl mb-6 border border-slate-700 bg-black">
+    <div class="rounded-xl overflow-hidden shadow-2xl mb-8 border border-slate-700 bg-black">
         <div class="player-wrapper">
             <video id="video" controls playsinline></video>
         </div>
@@ -819,127 +818,107 @@
 
     <div id="status" class="text-center text-sm font-mono mb-4 h-5 text-slate-400">准备就绪</div>
 
-    <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <div class="md:col-span-3">
-                <select id="platform" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm outline-none">
+    <div class="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 backdrop-blur shadow-xl">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="md:w-1/4">
+                <select id="platform" class="w-full h-12 bg-slate-900 border border-slate-600 rounded-lg px-4 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition appearance-none cursor-pointer">
                     <option value="douyin">抖音 (Douyin)</option>
                     <option value="huya">虎牙 (Huya)</option>
                     <option value="douyu">斗鱼 (Douyu)</option>
                 </select>
             </div>
-            <div class="md:col-span-6">
-                <input type="text" id="roomId" placeholder="输入房间号 / ID" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm outline-none placeholder-slate-600">
+            
+            <div class="md:w-2/4">
+                <input type="text" id="roomId" placeholder="输入房间号 / ID / 链接" class="w-full h-12 bg-slate-900 border border-slate-600 rounded-lg px-4 text-base focus:ring-2 focus:ring-blue-500 outline-none transition placeholder-slate-600">
             </div>
-            <div class="md:col-span-3 flex gap-2">
-                <button onclick="playStream()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-sm transition">播放</button>
-                <button onclick="addToFavorites()" class="px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-lg transition">★</button>
+
+            <div class="md:w-1/4">
+                <button onclick="playStream()" class="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg font-bold text-base transition shadow-lg shadow-blue-900/30 active:scale-95">
+                    立即播放
+                </button>
             </div>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <p class="text-xs text-slate-600">支持 抖音 / 虎牙 / 斗鱼 • 输入房间号点击播放</p>
         </div>
     </div>
 
-    <div class="flex-1">
-        <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-300">
-            <span>我的收藏</span>
-            <span class="text-xs font-normal text-slate-600 px-2 py-0.5 bg-slate-800 rounded-full" id="favCount">0</span>
-        </h2>
-        <div id="favList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
-    </div>
-
     <script>
-        // 注意：这里的 API 路径需要你的 Worker 能够响应
-        const API_BASE = window.location.origin + "/api";
-        const video = document.getElementById('video');
-        let hls = null;
+        var video = document.getElementById('video');
+        var hls = null;
+        var API_BASE = window.location.origin + "/api";
 
-        window.onload = loadFavorites;
+        async function playStream() {
+            var platform = document.getElementById('platform').value;
+            var id = document.getElementById('roomId').value;
 
-        async function playStream(forcedId, forcedPlatform) {
-            const platform = forcedPlatform || document.getElementById('platform').value;
-            const id = forcedId || document.getElementById('roomId').value;
-            if (!id) return showStatus("请输入房间号", true);
-            
-            document.getElementById('platform').value = platform;
-            document.getElementById('roomId').value = id;
+            if (!id) {
+                showStatus("请输入房间号", true);
+                return;
+            }
+
             showStatus("正在解析 " + platform + " : " + id + " ...");
 
             try {
-                // 你的后端需要处理这个 GET 请求
-                const res = await fetch(API_BASE + "/resolve?platform=" + platform + "&id=" + id);
-                const data = await res.json();
-                if (data.error) throw new Error(data.error);
+                // 使用普通的字符串拼接，不使用模板符号
+                var requestUrl = API_BASE + "/resolve?platform=" + platform + "&id=" + id;
+                
+                var res = await fetch(requestUrl);
+                var data = await res.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
                 loadVideo(data.url);
                 showStatus("播放中: " + id, false);
             } catch (e) {
-                showStatus(e.message, true);
+                showStatus(e.message || "解析失败", true);
             }
         }
 
         function loadVideo(url) {
             if (Hls.isSupported()) {
-                if (hls) hls.destroy();
+                if (hls) {
+                    hls.destroy();
+                }
                 hls = new Hls();
                 hls.loadSource(url);
                 hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-                hls.on(Hls.Events.ERROR, (e, data) => { if (data.fatal) hls.startLoad(); });
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play();
+                });
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        showStatus("流媒体错误, 尝试重连...", true);
+                        hls.startLoad();
+                    }
+                });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = url;
-                video.addEventListener('loadedmetadata', () => video.play());
+                video.addEventListener('loadedmetadata', function() {
+                    video.play();
+                });
             }
         }
 
-        async function addToFavorites() {
-            const id = document.getElementById('roomId').value;
-            const platform = document.getElementById('platform').value;
-            if(!id) return;
-            const name = prompt("备注名称", id);
-            if(!name) return;
-            // 你的后端需要处理这个 POST 请求
-            await fetch(API_BASE + "/favorites", { method: 'POST', body: JSON.stringify({ id, platform, name }) });
-            loadFavorites();
-        }
-
-        async function removeFav(id, platform) {
-            if(!confirm("确定删除?")) return;
-            // 你的后端需要处理这个 DELETE 请求
-            await fetch(API_BASE + "/favorites", { method: 'DELETE', body: JSON.stringify({ id, platform }) });
-            loadFavorites();
-        }
-
-        async function loadFavorites() {
-            // 你的后端需要处理这个 GET 请求
-            const res = await fetch(API_BASE + "/favorites");
-            const list = await res.json();
-            const container = document.getElementById('favList');
-            document.getElementById('favCount').innerText = list.length;
-            container.innerHTML = '';
-            
-            if (list.length === 0) {
-                container.innerHTML = '<p class="text-slate-500 text-sm">暂无收藏</p>';
-                return;
-            }
-
-            list.forEach(item => {
-                const div = document.createElement('div');
-                div.className = "flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-700 hover:border-blue-500/50 transition group";
-                // 注意：这里的 是转义符，用于在 HTML 字符串中保留 JS 模板变量
-                div.innerHTML = \`
-                    <div class="cursor-pointer overflow-hidden flex-1" onclick="playStream('${item.id}', '${item.platform}')">
-                        <div class="font-bold text-sm text-slate-200 group-hover:text-blue-400 transition">${item.name}</div>
-                        <div class="text-xs text-slate-500 font-mono mt-1">${item.platform.toUpperCase()} ${item.id}</div>
-                    </div>
-                    <button onclick="removeFav('${item.id}', '${item.platform}')" class="text-slate-600 hover:text-red-400 px-2 transition">×</button>
-                \`;
-                container.appendChild(div);
-            });
-        }
-
-        function showStatus(msg, isError = false) {
-            const el = document.getElementById('status');
+        function showStatus(msg, isError) {
+            var el = document.getElementById('status');
             el.innerText = msg;
-            el.className = isError ? "text-center text-sm font-mono mb-4 h-5 text-red-400" : "text-center text-sm font-mono mb-4 h-5 text-green-400";
+            if (isError) {
+                el.className = "text-center text-sm font-mono mb-4 h-5 text-red-400";
+            } else {
+                el.className = "text-center text-sm font-mono mb-4 h-5 text-green-400";
+            }
         }
+        
+        // 简单的回车键监听
+        document.getElementById('roomId').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                playStream();
+            }
+        });
     </script>
 </body>
 </html>
