@@ -923,13 +923,13 @@
             list.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-700 hover:border-blue-500/50 transition group";
-                // 注意：这里的 \\${} 是转义符，用于在 HTML 字符串中保留 JS 模板变量
+                // 注意：这里的 是转义符，用于在 HTML 字符串中保留 JS 模板变量
                 div.innerHTML = \`
-                    <div class="cursor-pointer overflow-hidden flex-1" onclick="playStream('\${item.id}', '\${item.platform}')">
-                        <div class="font-bold text-sm text-slate-200 group-hover:text-blue-400 transition">\${item.name}</div>
-                        <div class="text-xs text-slate-500 font-mono mt-1">\${item.platform.toUpperCase()} \${item.id}</div>
+                    <div class="cursor-pointer overflow-hidden flex-1" onclick="playStream('${item.id}', '${item.platform}')">
+                        <div class="font-bold text-sm text-slate-200 group-hover:text-blue-400 transition">${item.name}</div>
+                        <div class="text-xs text-slate-500 font-mono mt-1">${item.platform.toUpperCase()} ${item.id}</div>
                     </div>
-                    <button onclick="removeFav('\${item.id}', '\${item.platform}')" class="text-slate-600 hover:text-red-400 px-2 transition">×</button>
+                    <button onclick="removeFav('${item.id}', '${item.platform}')" class="text-slate-600 hover:text-red-400 px-2 transition">×</button>
                 \`;
                 container.appendChild(div);
             });
